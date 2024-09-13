@@ -34,13 +34,31 @@ if (length(args) > 0) {
   if (length(r_ver) == 1) {
     r_ver <- sub("^#' @rix ", "", r_ver)
     r_ver <- parse(text = r_ver)
+    tryCatch(
+      eval(r_ver),
+      error = function(e) {
+        print(paste("Error r_ver:", e\$message))
+      }
+    )
+    if (class(r_ver) != "character" && length(r_ver) == 1) {
+      r_ver = NULL
+    }
   } else{
     r_ver = NULL
-  }  
+  }
   r_pkgs <- grep("^#' @rix r_pkgs ", file_lines, value = TRUE)
   if (length(r_pkgs) == 1) {
     r_pkgs <- sub("^#' @rix ", "", r_pkgs)
     r_pkgs <- parse(text = r_pkgs)
+    tryCatch(
+      eval(r_pkgs),
+      error = function(e) {
+        print(paste("Error r_pkgs:", e\$message))
+      }
+    )
+    if (class(r_pkgs) != "character") {
+      r_pkgs = NULL
+    }
   } else{
     r_pkgs = NULL
   }      
@@ -48,6 +66,15 @@ if (length(args) > 0) {
   if (length(system_pkgs) == 1) {
     system_pkgs <- sub("^#' @rix ", "", system_pkgs)
     system_pkgs <- parse(text = system_pkgs)
+    tryCatch(
+      eval(system_pkgs),
+      error = function(e) {
+        print(paste("Error system_pkgs:", e\$message))
+      }
+    )
+    if (class(system_pkgs) != "character") {
+      system_pkgs = NULL
+    }
   } else{
     system_pkgs = NULL
   }
@@ -55,6 +82,15 @@ if (length(args) > 0) {
   if (length(git_pkgs) == 1) {
     git_pkgs <- sub("^#' @rix ", "", git_pkgs)
     git_pkgs <- parse(text = git_pkgs)
+    tryCatch(
+      eval(git_pkgs),
+      error = function(e) {
+        print(paste("Error git_pkgs:", e\$message))
+      }
+    )
+    if (class(git_pkgs) != "list") {
+      git_pkgs = NULL
+    }
   } else{
     git_pkgs = NULL
   }
@@ -70,10 +106,10 @@ suppressMessages(suppressWarnings({
   library(rix)
   path_default_nix <- "$NIX_TMP_DIR"
   rix::rix(
-    eval(r_ver),
-    eval(r_pkgs),
-    eval(system_pkgs),
-    eval(git_pkgs),
+    r_ver = r_ver,
+    r_pkgs = r_pkgs,
+    system_pkgs = system_pkgs,
+    git_pkgs = git_pkgs,
     overwrite = TRUE,
     print = TRUE,
     project_path = path_default_nix,
@@ -88,7 +124,7 @@ nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/jrosell/rix-run/m
 # nix-shell --expr "$(cat inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
 NIX_FILE=`cat $NIX_TMP | grep '^/tmp/' | grep 'default.nix'`
 # cat $NIX_TMP
-rm $RIX_R_SCRIPT_PATH
+rm $RIX_R_SCRIPT_PATH # echo "RIX_R_SCRIPT_PATH" $RIX_R_SCRIPT_PATH
 
 if [[ $(wc -l < "$NIX_FILE") -ge 2 ]]; then    
   echo "Runing nix-shell $NIX_FILE ${1}..."
