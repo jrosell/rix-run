@@ -7,7 +7,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 # rix-run
 
-Command line tool to run R scripts that are anotated with [rix](https://github.com/ropensci/rix) roxygen2 like tags.
+Command line tool to run R scripts that are anotated with rix roxygen2 like tags.
 
 ## Supported tags
 
