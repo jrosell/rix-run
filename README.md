@@ -20,7 +20,7 @@ These annotations will be used in [{rix}](https://github.com/ropensci/rix) to ge
 
 ## Installation
 
-Clone this repo and put rix-run in your path.
+Clone this repo and put `rix-run` in your path.
 
 ```
 $ git clone git@github.com:jrosell/rix-run.git
