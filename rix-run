@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 # Check nix installation requeriments
 if ! command -v curl &> /dev/null
@@ -14,11 +15,86 @@ then
      sh -s -- install
 fi
 
+
+RIX_R_SCRIPT_PATH="$(mktemp /tmp/rix.XXXXXXXXX.R)"
+
+# Write the R script dynamically to the file
+cat <<EOF > "$RIX_R_SCRIPT_PATH"
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args) > 0) {
+  file_lines <- readLines(args[1])
+
+  r_ver <- grep("^#' @rix r_ver ", file_lines, value = TRUE)
+  if (length(r_ver) == 1) {
+    r_ver <- sub("^#' @rix ", "", r_ver)
+    r_ver <- parse(text = r_ver)
+  } else{
+    r_ver = NULL
+  }  
+  r_pkgs <- grep("^#' @rix r_pkgs ", file_lines, value = TRUE)
+  if (length(r_pkgs) == 1) {
+    r_pkgs <- sub("^#' @rix ", "", r_pkgs)
+    r_pkgs <- parse(text = r_pkgs)
+  } else{
+    r_pkgs = NULL
+  }      
+  system_pkgs <- grep("^#' @rix system_pkgs ", file_lines, value = TRUE)
+  if (length(system_pkgs) == 1) {
+    system_pkgs <- sub("^#' @rix ", "", system_pkgs)
+    system_pkgs <- parse(text = system_pkgs)
+  } else{
+    system_pkgs = NULL
+  }
+  git_pkgs <- grep("^#' @rix git_pkgs ", file_lines, value = TRUE)
+  if (length(git_pkgs) == 1) {
+    git_pkgs <- sub("^#' @rix ", "", git_pkgs)
+    git_pkgs <- parse(text = git_pkgs)
+  } else{
+    git_pkgs = NULL
+  }
+}
+sink("/dev/null")
+suppressMessages(suppressWarnings({
+  if(!requireNamespace("rix")) {
+    install.packages("rix", repos = c(
+      "https://ropensci.r-universe.dev",
+      "https://cloud.r-project.org"
+    ))
+  }
+  library(rix)
+  path_default_nix <- tempdir()
+  rix::rix(
+    eval(r_ver),
+    eval(r_pkgs),
+    eval(system_pkgs),
+    eval(git_pkgs),
+    overwrite = TRUE,
+    print = FALSE,
+    project_path = path_default_nix,
+    ide = "other"
+  )
+}))
+sink()
+cat(paste0(path_default_nix, "/default.nix\n"))
+EOF
+
+NIX_TMP=$(mktemp /tmp/rix.XXXXXXXXX.tmp)
+
 # Generate the tmp default.nix file from the antotations
 nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/ropensci/rix/master/inst/extdata/default.nix)" \
-  --run "Rscript --no-site-file --no-environ --no-restore rix-run.R ${1}" > nix-run.tmp 
-NIX_FILE=`cat nix-run.tmp | grep '^/tmp/'`
-rm nix-run.tmp
+  --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
+NIX_FILE=`cat $NIX_TMP| grep '^/tmp/'`
+rm $NIX_TMP
+rm $RIX_R_SCRIPT_PATH
 
 # Run the script
-bash rix-run-rscript.sh $NIX_FILE ${1}
+NIX_RSCRIPT=$(mktemp /tmp/rix.XXXXXXXXX.sh)
+echo "#!/usr/bin/env nix-shell
+#! nix-shell -i bash --pure \${1}
+Rscript  \
+  --no-site-file \
+  --no-environ \
+  --no-restore \
+  \${2}" > $NIX_RSCRIPT
+bash $NIX_RSCRIPT $NIX_FILE ${1}
+rm $NIX_RSCRIPT
