@@ -42,6 +42,7 @@ $ rix-run examples/data-visualize.R
 
 ## Troubleshooting
 
-* It's tested on Ubuntu.
+* It's tested on Ubuntu. If you want to help, please test Debian, Fedora, Centos, MacOS, etc.
 * Please, open an issue if you have any problem.
-* Feel free to open a PR to improve it.
+* Windows it's not (yet?) supported.
+* Feel free to open a PR to improve `rix-run`.
