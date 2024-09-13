@@ -1,0 +1,24 @@
+
+# Check nix installation requeriments
+if ! command -v curl &> /dev/null
+then
+    echo "curl is required."
+    exit 1
+fi
+
+# Install nix if not yet installed
+if ! command -v nix-shell &> /dev/null
+then
+  curl --proto '=https' --tlsv1.2 -sSf \
+    -L https://install.determinate.systems/nix | \
+     sh -s -- install
+fi
+
+# Generate the tmp default.nix file from the antotations
+nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/ropensci/rix/master/inst/extdata/default.nix)" \
+  --run "Rscript --no-site-file --no-environ --no-restore rix-run.R ${1}" > nix-run.tmp 
+NIX_FILE=`cat nix-run.tmp | grep '^/tmp/'`
+rm nix-run.tmp
+
+# Run the script
+bash rix-run-rscript.sh $NIX_FILE ${1}
