@@ -7,7 +7,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 # rix-run
 
-Command line tool to run R scripts that are anotated with rix roxygen2 tags.
+Command line tool to run R scripts that are annotated with rix roxygen2 tags.
 
 ## Supported tags
 
@@ -31,7 +31,7 @@ $ cp rix-run/rix-run ./somewhere/in/your/search/path
 ## Usage
 
 
-The [examples/data-visualize.R](examples/data-visualize.R) file include r_ver and r_pkgs anotated values.
+The [examples/data-visualize.R](examples/data-visualize.R) file include r_ver and r_pkgs annotated values.
 
 
 Once `rix-run` is installed, to run the script execute:
