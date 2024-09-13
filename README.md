@@ -34,7 +34,7 @@ $ cp rix-run/rix-run ./somewhere/in/your/search/path
 The [examples/data-visualize.R](examples/data-visualize.R) file include r_ver and r_pkgs anotated values.
 
 
-Once rix-run is installed, to run the script execute:
+Once `rix-run` is installed, to run the script execute:
 
 ```
 $ rix-run examples/data-visualize.R
