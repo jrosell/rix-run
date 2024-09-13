@@ -6,7 +6,7 @@ Command line tool to run R scripts anotated with [rix](https://github.com/ropens
 Example:
 
 ```
-$ bash nix-run examples/data-visualize.R
+$ bash rix-run examples/data-visualize.R
 ```
 
 ## Supported tags
