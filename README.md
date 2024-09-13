@@ -1,4 +1,4 @@
-# nix-run
+# rix.run
 
 Command line tool to run R scripts anotated with [rix](https://github.com/ropensci/rix) tags
 
