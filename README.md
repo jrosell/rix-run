@@ -5,7 +5,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 <!-- badges: end -->
 
-# rix.run
+# rix-run
 
 Command line tool to run R scripts that are anotated with [rix](https://github.com/ropensci/rix) roxygen2 like tags.
 
@@ -23,9 +23,9 @@ These annotations will be used in [{rix}](https://github.com/ropensci/rix) to ge
 Clone this repo and put rix-run in your path.
 
 ```
-$ git clone https://github.com/jrosell/rix.run
-$ chmod u+x rix.run/rix-run
-$ cp rix.run/rix-run ./somewhere/in/your/search/path
+$ git clone git@github.com:jrosell/rix-run.git
+$ chmod u+x rix-run/rix-run
+$ cp rix-run/rix-run ./somewhere/in/your/search/path
 ```
 
 ## Usage
