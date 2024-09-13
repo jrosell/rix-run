@@ -6,3 +6,4 @@
 .quarto
 *.tmp
 test.R
+*.png
