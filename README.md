@@ -23,7 +23,7 @@ These annotations will be used in [{rix}](https://github.com/ropensci/rix) to ge
 Clone this repo and put rix-run in your path.
 
 ```
-$ git clone https://github.com/jrosell/rix-run
+$ git clone https://github.com/jrosell/rix.run
 $ chmod u+x rix.run/rix-run
 $ cp rix.run/rix-run ./somewhere/in/your/search/path
 ```

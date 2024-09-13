@@ -16,7 +16,9 @@ p <- penguins |>
   ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
   geom_point()
 
-suppressGraphics(ggsave(filename = file_path, plot = p))
+suppressGraphics(ggsave(
+  filename = file_path, plot = p, create.dir = TRUE
+))
 if (interactive()) {
   utils::browseURL(file_path)
 }
