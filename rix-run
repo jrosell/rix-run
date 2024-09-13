@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Check nix installation requeriments
+echo "Checking nix requeriments..."
 if ! command -v curl &> /dev/null
 then
     echo "curl is required."
     exit 1
 fi
 
-# Install nix if not yet installed
+echo "Install nix if not yet installed..."
 if ! command -v nix-shell &> /dev/null
 then
   curl --proto '=https' --tlsv1.2 -sSf \
@@ -16,9 +16,9 @@ then
 fi
 
 
+echo "Generating default.nix configuration..."
+NIX_TMP_DIR=$(mktemp -d /tmp/rix.XXXXXXXXX)
 RIX_R_SCRIPT_PATH="$(mktemp /tmp/rix.XXXXXXXXX.R)"
-
-# Write the R script dynamically to the file
 cat <<EOF > "$RIX_R_SCRIPT_PATH"
 args <- commandArgs(trailingOnly=TRUE)
 if (length(args) > 0) {
@@ -53,7 +53,7 @@ if (length(args) > 0) {
     git_pkgs = NULL
   }
 }
-sink("/dev/null")
+# sink("/dev/null")
 suppressMessages(suppressWarnings({
   if(!requireNamespace("rix")) {
     install.packages("rix", repos = c(
@@ -62,39 +62,38 @@ suppressMessages(suppressWarnings({
     ))
   }
   library(rix)
-  path_default_nix <- tempdir()
+  path_default_nix <- "$NIX_TMP_DIR"
   rix::rix(
     eval(r_ver),
     eval(r_pkgs),
     eval(system_pkgs),
     eval(git_pkgs),
     overwrite = TRUE,
-    print = FALSE,
+    print = TRUE,
     project_path = path_default_nix,
     ide = "other"
   )
 }))
-sink()
-cat(paste0(path_default_nix, "/default.nix\n"))
+# sink()
+cat(paste0("\n", path_default_nix, "/default.nix\n"))
 EOF
-
 NIX_TMP=$(mktemp /tmp/rix.XXXXXXXXX.tmp)
-
-# Generate the tmp default.nix file from the antotations
-nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/ropensci/rix/master/inst/extdata/default.nix)" \
-  --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
-NIX_FILE=`cat $NIX_TMP| grep '^/tmp/'`
+nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/jrosell/rix-run/master/inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
+# nix-shell --expr "$(cat inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
+NIX_FILE=`cat $NIX_TMP | grep '^/tmp/' | grep 'default.nix'`
+# cat $NIX_TMP
 rm $NIX_TMP
 rm $RIX_R_SCRIPT_PATH
 
-# Run the script
-NIX_RSCRIPT=$(mktemp /tmp/rix.XXXXXXXXX.sh)
-echo "#!/usr/bin/env nix-shell
-#! nix-shell -i bash --pure \${1}
-Rscript  \
+
+if [[ $(wc -l < $NIX_FILE) -ge 2 ]]; then    
+  echo "Runing nix-shell $NIX_FILE ${1}..."
+else
+  echo "Error when generating the configuration file."
+  exit 2
+fi
+nix-shell --expr "$(cat $NIX_FILE)" --run "Rscript  \
   --no-site-file \
   --no-environ \
   --no-restore \
-  \${2}" > $NIX_RSCRIPT
-bash $NIX_RSCRIPT $NIX_FILE ${1}
-rm $NIX_RSCRIPT
+  ${1}"

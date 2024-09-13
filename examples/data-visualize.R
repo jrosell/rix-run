@@ -1,5 +1,5 @@
-#' @rix r_ver = '4.3.3'
-#' @rix r_pkgs = c('here','ggplot2', 'dplyr', 'tidyr', 'palmerpenguins', 'ggthemes', 'R.devices')
+#' @rix r_ver = "4.3.3"
+#' @rix r_pkgs = c("here", "ggplot2", "dplyr", "tidyr", "palmerpenguins", "ggthemes", "R.devices")
 library(here)
 library(dplyr)
 library(tidyr)
