@@ -8,7 +8,7 @@ library(palmerpenguins)
 library(ggthemes)
 library(R.devices)
 
-file_path <- here('examples', 'data-visualize-penguin-plot.png')
+file_path <- here('examples', 'data-visualize-plot.png')
 
 str(penguins)
 p <- penguins |> 

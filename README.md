@@ -40,8 +40,24 @@ Once `rix-run` is installed, to run the script execute:
 $ rix-run examples/data-visualize.R
 ```
 
+To use docker:
+
+```
+$ docker build -f Dockerfile -t rix-run-image . \
+  && docker run --name rix-run-container --rm  -v $(pwd)/examples:/workspace/examples/:rw rix-run-image
+```
+
+To clean up the used docker images and containers:
+
+```
+(docker container rm -f rix-run-container || true) \
+		&& (docker rmi $(docker images --format '{{.Repository}}:{{.ID}}'| egrep 'rix-run-image' | cut -d':' -f2 | uniq) --force || true)
+```
+
 ## Troubleshooting
 
 * It's tested on Ubuntu. If you want to help, please test Debian, Fedora, Centos, MacOS, etc. Windows it's not (yet?) supported.
 * Please, open an issue if you have any problem.
 * Feel free to open a PR to improve `rix-run`.
+
+

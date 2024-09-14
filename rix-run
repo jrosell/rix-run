@@ -7,14 +7,13 @@ then
     exit 1
 fi
 
-echo "Install nix if not yet installed..."
+echo "Installing nix if not yet installed..."
 if ! command -v nix-shell &> /dev/null
 then
   curl --proto '=https' --tlsv1.2 -sSf \
     -L https://install.determinate.systems/nix | \
-     sh -s -- install
+     sh -s -- install --no-confirm
 fi
-
 
 if test -f "${1}"; then
   echo "Generating default.nix configuration..."    
@@ -23,6 +22,48 @@ else
   exit 2
 fi
 
+CURRENT_DIR=$(pwd)
+RIX_R_PROFILE="$CURRENT_DIR/.Rprofile"
+if test -f "$RIX_R_PROFILE"; then
+  RIX_R_PROFILE_PREVIOUS="$CURRENT_DIR/.Rprofile.tmp"
+  mv "$RIX_R_PROFILE" "$RIX_R_PROFILE_PREVIOUS"
+fi
+cat <<EOF > "$RIX_R_PROFILE"
+{
+    is_rstudio <- Sys.getenv("RSTUDIO") == "1"
+    is_nix_r <- nzchar(Sys.getenv("NIX_STORE"))
+    if (isFALSE(is_nix_r) && isTRUE(is_rstudio)) {
+        cat("{rix} detected RStudio R session")
+        old_path <- Sys.getenv("PATH")
+        nix_path <- "/nix/var/nix/profiles/default/bin"
+        has_nix_path <- any(grepl(nix_path, old_path))
+        if (isFALSE(has_nix_path)) {
+            Sys.setenv(PATH = paste(old_path, nix_path, sep = ":"))
+        }
+        rm(old_path, nix_path)
+    }
+    if (isTRUE(is_nix_r)) {
+        install.packages <- function(...) {
+            stop("You are currently in an R session running from Nix.\nDon't install packages using install.packages(),\nadd them to the default.nix file instead.")
+        }
+        update.packages <- function(...) {
+            stop("You are currently in an R session running from Nix.\nDon't update packages using update.packages(),\ngenerate a new default.nix with a more recent version of R. If you need bleeding edge packages, read the 'Understanding the rPackages set release cycle and using bleeding edge packages' vignette.")
+        }
+        remove.packages <- function(...) {
+            stop("You are currently in an R session running from Nix.\nDon't remove packages using remove.packages(),\ndelete them from the default.nix file instead.")
+        }
+        current_paths <- .libPaths()
+        userlib_paths <- Sys.getenv("R_LIBS_USER")
+        user_dir <- grep(paste(userlib_paths, collapse = "|"), current_paths, fixed = TRUE)
+        new_paths <- current_paths[-user_dir]
+        .libPaths(new_paths)
+        rm(current_paths, userlib_paths, user_dir, new_paths)
+    }
+    rm(is_rstudio, is_nix_r)
+}
+EOF
+
+echo $CURRENT_DIR
 NIX_TMP_DIR=$(mktemp -d /tmp/rix.XXXXXXXXX)
 RIX_R_SCRIPT_PATH="$(mktemp /tmp/rix.XXXXXXXXX.R)"
 cat <<EOF > "$RIX_R_SCRIPT_PATH"
@@ -120,21 +161,33 @@ suppressMessages(suppressWarnings({
 cat(paste0("\n", path_default_nix, "/default.nix\n"))
 EOF
 NIX_TMP=$(mktemp /tmp/rix.XXXXXXXXX.tmp)
-nix-shell --expr "$(curl -sl https://raw.githubusercontent.com/jrosell/rix-run/master/inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
+nix-shell --pure --expr "$(curl -sl https://raw.githubusercontent.com/jrosell/rix-run/master/inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
 # nix-shell --expr "$(cat inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
 NIX_FILE=`cat $NIX_TMP | grep '^/tmp/' | grep 'default.nix'`
-# cat $NIX_TMP
-rm $RIX_R_SCRIPT_PATH # echo "RIX_R_SCRIPT_PATH" $RIX_R_SCRIPT_PATH
+cat "$NIX_TMP"
+rm "$RIX_R_SCRIPT_PATH" # echo "RIX_R_SCRIPT_PATH" $RIX_R_SCRIPT_PATH
+
 
 if [[ $(wc -l < "$NIX_FILE") -ge 2 ]]; then    
   echo "Runing nix-shell $NIX_FILE ${1}..."
   rm $NIX_TMP
 else
   echo "Error when generating the configuration file. Check for errors on the $NIX_TMP file."
+  rm "$RIX_R_PROFILE"
+  if test -f "$RIX_R_PROFILE_PREVIOUS"; then
+    mv "$RIX_R_PROFILE_PREVIOUS" "$RIX_R_PROFILE"
+  fi
   exit 2
 fi
+
 nix-shell --expr "$(cat $NIX_FILE)" --run "Rscript  \
   --no-site-file \
   --no-environ \
   --no-restore \
   ${1}"
+
+rm "$RIX_R_PROFILE"
+if test -f "$RIX_R_PROFILE_PREVIOUS"; then
+  mv "$RIX_R_PROFILE_PREVIOUS" "$RIX_R_PROFILE"
+fi
+
