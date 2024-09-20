@@ -30,6 +30,7 @@ $ cp rix-run/rix-run ./somewhere/in/your/search/path
 
 ## Usage
 
+### Basic usage
 
 The [examples/data-visualize.R](examples/data-visualize.R) file include r_ver and r_pkgs annotated values.
 
@@ -52,6 +53,43 @@ To clean up the used docker images and containers:
 ```
 (docker container rm -f rix-run-container || true) \
 		&& (docker rmi $(docker images --format '{{.Repository}}:{{.ID}}'| egrep 'rix-run-image' | cut -d':' -f2 | uniq) --force || true)
+```
+
+### Targets single file
+
+
+The [examples/targets-run1.R](examples/targets-run1.R) file is a _targets.R script file that will be exacuted with tar_make when using the --targets argument.
+
+Once `rix-run` is installed, to run the target script execute:
+
+```
+$ rix-run examples/targets-run1.R --targets
+```
+
+First time result example:
+```
+> dispatched target file_url
+o completed target file_url [0.089 seconds]
+> dispatched target file
+o completed target file [0.045 seconds]
+> dispatched target data
+o completed target data [0.147 seconds]
+> dispatched target model
+o completed target model [0.003 seconds]
+> dispatched target plot
+o completed target plot [0.013 seconds]
+> ended pipeline [0.447 seconds]
+```
+
+
+Following times resul example:
+```
+v skipped target file_url
+v skipped target file
+v skipped target data
+v skipped target model
+v skipped target plot
+v skipped pipeline [0.168 seconds]
 ```
 
 ## Troubleshooting

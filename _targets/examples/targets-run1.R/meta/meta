@@ -1,0 +1,12 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+data|stem|64dc220c06614817|4525b922227c51ac|0dd25d1b0ac3432f|33550471||t19986.3547559838s|b0d2515205666d53|1355|rds|local|vector|||0.147||
+file|stem|18249aa3ba43d359|84e8e792d41c1c0f|4a2947898739a31a|1735323524|data.csv|t19986.3547542129s|b1a5d9836ec7e80d|2890|file|local|vector|||0.045||
+file_url|stem|ba138f278faf5c7b|ca1f423b9cbf9ff3|ef46db3751d8e999|-1784702043|https://raw.githubusercontent.com/wlandau/targets-four-minutes/refs/heads/main/data.csv|t19986.3547535649s||0|url|local|vector|||0.089||
+fit_model|function|982677e5c5b1c4d7|||||||||||||||
+get_data|function|caaab029510d896a|||||||||||||||
+install.packages|function|aa9662bf7bdb3083|||||||||||||||
+model|stem|a98f76c922c4b3d5|f3249b4ecf290e96|455275d99f691d14|808688450||t19986.3547560648s|c4a62f0a1301ecbc|111|rds|local|vector|||0.003||
+plot|stem|91f7d74723901a99|1239c97928298b18|ab07dc24b81c20f6|874984291||t19986.3547566088s|7b37f7aec6552372|93106|rds|local|vector|||0.013||
+plot_model|function|79f0c75b1fb6e6be|||||||||||||||
+remove.packages|function|b7fd7f4362cf0a5c|||||||||||||||
+update.packages|function|cd5bd9e88127ea41|||||||||||||||

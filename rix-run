@@ -180,11 +180,17 @@ else
   exit 2
 fi
 
-nix-shell --expr "$(cat $NIX_FILE)" --run "Rscript  \
+if [[ $* == *--targets* ]]; then
+  echo "Rscript -e 'targets::tar_make(script = \"${1}\", store = \"_${1}\")'"
+  nix-shell --expr "$(cat $NIX_FILE)" --run \
+  "Rscript -e 'targets::tar_make(script = \"${1}\", store = \"_targets/${1}\")'"
+else 
+  nix-shell --expr "$(cat $NIX_FILE)" --run "Rscript  \
   --no-site-file \
   --no-environ \
   --no-restore \
   ${1}"
+fi
 
 rm "$RIX_R_PROFILE"
 if test -f "$RIX_R_PROFILE_PREVIOUS"; then
