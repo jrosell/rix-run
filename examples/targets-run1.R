@@ -17,7 +17,7 @@ plot_model <- function(model, data) {
 library(targets)
 tar_option_set(packages = c("readr", "dplyr", "ggplot2"))
 list(
-  tarchetypes::tar_download(file, "https://raw.githubusercontent.com/wlandau/targets-four-minutes/refs/heads/main/data.csv", "data.csv"),
+  tarchetypes::tar_download(file, "https://raw.githubusercontent.com/wlandau/targets-four-minutes/refs/heads/main/data.csv", here::here("examples", "targets-run1-data.csv")),
   tar_target(data, get_data(file)),
   tar_target(model, fit_model(data)),
   tar_target(plot, plot_model(model, data))

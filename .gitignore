@@ -7,3 +7,5 @@
 *.tmp
 test.R
 *.png
+*.csv
+_targets/
