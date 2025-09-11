@@ -19,6 +19,20 @@ Command line tool to run R scripts that are annotated with rix roxygen2 tags.
 
 These annotations will be used in [{rix}](https://github.com/ropensci/rix) to generate the nix configuration of the environment that will run the R script in a docker container.
 
+For instance, if we have:
+
+```
+print(here::here("."))
+```
+
+We can add:
+
+```
+#' @rix date = "2025-09-01"
+#' @rix r_pkgs = c("here")
+print(here::here("."))
+```
+
 ## Installation
 
 1. [Install Docker](https://docs.docker.com/get-started/get-docker/)
