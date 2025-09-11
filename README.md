@@ -88,7 +88,7 @@ $ rix-run examples/quarto-render.qmd --quarto
 
 * You will find execution logs in the rix-run-logs folder.
 * It's tested on Ubuntu. If you want to help, please test other systems.
-* Please, open an issue if you have any problem or suggestion
+* Please, open an issue if you have any problem or suggestion.
 * Feel free to open a PR to improve `rix-run`.
 
 
