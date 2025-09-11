@@ -41,7 +41,7 @@ print(here::here("."))
 ```
 $ git clone git@github.com:jrosell/rix-run.git
 $ cd rix-run
-$ echo "export PATH=PATH:~/.local/bin/" >> ~/.bashrc
+$ echo "export PATH=$PATH:~/.local/bin/" >> ~/.bashrc
 $ chmod u+x rix-run
 $ cp rix-run ~/.local/bin/rix-run
 
