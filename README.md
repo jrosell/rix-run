@@ -36,7 +36,7 @@ print(here::here("."))
 ## Installation
 
 1. [Install Docker](https://docs.docker.com/get-started/get-docker/)
-2. Dowload and extract or clone [the rix-run file](https://github.com/jrosell/rix-run) and put the exacutable in in your PATH. For example: 
+2. Dowload and extract or clone [the rix-run repository](https://github.com/jrosell/rix-run) and put the `rix-run+ executable file in in your PATH. For example: 
 
 ```
 $ git clone git@github.com:jrosell/rix-run.git
