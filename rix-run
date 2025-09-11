@@ -1,71 +1,33 @@
 #!/usr/bin/env bash
 
 echo "Checking nix requeriments..."
-if ! command -v curl &> /dev/null
+if ! command -v docker &> /dev/null
 then
-    echo "curl is required."
+    echo "docker is required."
     exit 1
 fi
 
-echo "Installing nix if not yet installed..."
-if ! command -v nix-shell &> /dev/null
-then
-  curl --proto '=https' --tlsv1.2 -sSf \
-    -L https://install.determinate.systems/nix | \
-     sh -s -- install --no-confirm
-fi
-
-if test -f "${1}"; then
-  echo "Generating default.nix configuration..."    
-else
+if ! test -f "${1}"; then
   echo "Error: No R script provided. Use: rix-run <your-script>.R"
   exit 2
 fi
 
-CURRENT_DIR=$(pwd)
-RIX_R_PROFILE="$CURRENT_DIR/.Rprofile"
-if test -f "$RIX_R_PROFILE"; then
-  RIX_R_PROFILE_PREVIOUS="$CURRENT_DIR/.Rprofile.tmp"
-  mv "$RIX_R_PROFILE" "$RIX_R_PROFILE_PREVIOUS"
-fi
-cat <<EOF > "$RIX_R_PROFILE"
-{
-    is_rstudio <- Sys.getenv("RSTUDIO") == "1"
-    is_nix_r <- nzchar(Sys.getenv("NIX_STORE"))
-    if (isFALSE(is_nix_r) && isTRUE(is_rstudio)) {
-        cat("{rix} detected RStudio R session")
-        old_path <- Sys.getenv("PATH")
-        nix_path <- "/nix/var/nix/profiles/default/bin"
-        has_nix_path <- any(grepl(nix_path, old_path))
-        if (isFALSE(has_nix_path)) {
-            Sys.setenv(PATH = paste(old_path, nix_path, sep = ":"))
-        }
-        rm(old_path, nix_path)
-    }
-    if (isTRUE(is_nix_r)) {
-        install.packages <- function(...) {
-            stop("You are currently in an R session running from Nix.\nDon't install packages using install.packages(),\nadd them to the default.nix file instead.")
-        }
-        update.packages <- function(...) {
-            stop("You are currently in an R session running from Nix.\nDon't update packages using update.packages(),\ngenerate a new default.nix with a more recent version of R. If you need bleeding edge packages, read the 'Understanding the rPackages set release cycle and using bleeding edge packages' vignette.")
-        }
-        remove.packages <- function(...) {
-            stop("You are currently in an R session running from Nix.\nDon't remove packages using remove.packages(),\ndelete them from the default.nix file instead.")
-        }
-        current_paths <- .libPaths()
-        userlib_paths <- Sys.getenv("R_LIBS_USER")
-        user_dir <- grep(paste(userlib_paths, collapse = "|"), current_paths, fixed = TRUE)
-        new_paths <- current_paths[-user_dir]
-        .libPaths(new_paths)
-        rm(current_paths, userlib_paths, user_dir, new_paths)
-    }
-    rm(is_rstudio, is_nix_r)
-}
-EOF
 
-echo $CURRENT_DIR
+mkdir -p rix-run-logs
+COMMAND_TO_RUN="Rscript ${1}"
+if [[ $* == *--targets* ]]; then
+  COMMAND_TO_RUN="Rscript -e 'targets::tar_make(script = \\\"${1}\\\", store = \\\"_targets/${1}\\\")'"
+elif  [[ $* == *--quarto* ]]; then 
+  COMMAND_TO_RUN="quarto render \\\"${1}\\\""
+fi
+echo "Running \"$COMMAND_TO_RUN\"..."    
+echo "Running \"$COMMAND_TO_RUN\"..." >> rix-run-logs/rix-run.logs
+
+CURRENT_DIR=$(pwd)
 NIX_TMP_DIR=$(mktemp -d /tmp/rix.XXXXXXXXX)
-RIX_R_SCRIPT_PATH="$(mktemp /tmp/rix.XXXXXXXXX.R)"
+echo "Current directory is $CURRENT_DIR"
+echo "Preparing the environment on $NIX_TMP_DIR"
+RIX_R_SCRIPT_PATH="$NIX_TMP_DIR/extract.R"
 cat <<EOF > "$RIX_R_SCRIPT_PATH"
 args <- commandArgs(trailingOnly=TRUE)
 if (length(args) > 0) {
@@ -82,10 +44,26 @@ if (length(args) > 0) {
       }
     )
     if (class(r_ver) != "character" && length(r_ver) == 1) {
-      r_ver = NULL
+      r_ver = "latest-upstream"
     }
   } else{
-    r_ver = NULL
+    r_ver = "latest-upstream"
+  }  
+  r_date <- grep("^#' @rix date ", file_lines, value = TRUE)
+  if (length(r_date) == 1) {
+    r_date <- sub("^#' @rix ", "", r_date)
+    r_date <- parse(text = r_date)
+    tryCatch(
+      eval(r_date),
+      error = function(e) {
+        print(paste("Error r_date:", e\$message))
+      }
+    )
+    if (class(r_date) != "character" && length(r_date) == 1) {
+      r_date = NULL
+    }
+  } else{
+    r_date = NULL
   }
   r_pkgs <- grep("^#' @rix r_pkgs ", file_lines, value = TRUE)
   if (length(r_pkgs) == 1) {
@@ -135,8 +113,23 @@ if (length(args) > 0) {
   } else{
     git_pkgs = NULL
   }
+  shell_hook <- grep("^#' @rix shell_hook ", file_lines, value = TRUE)
+  if (length(shell_hook) == 1) {
+    shell_hook <- sub("^#' @rix ", "", shell_hook)
+    shell_hook <- parse(text = shell_hook)
+    tryCatch(
+      eval(shell_hook),
+      error = function(e) {
+        print(paste("Error shell_hook:", e\$message))
+      }
+    )
+    if (class(shell_hook) != "character" && length(shell_hook) == 1) {
+      shell_hook = NULL
+    }
+  } else{
+    shell_hook = NULL
+  }
 }
-# sink("/dev/null")
 suppressMessages(suppressWarnings({
   if(!requireNamespace("rix")) {
     install.packages("rix", repos = c(
@@ -145,55 +138,64 @@ suppressMessages(suppressWarnings({
     ))
   }
   library(rix)
-  path_default_nix <- "$NIX_TMP_DIR"
+  path_default_nix <- "."  
+  # print(paste0("r_ver: ",r_ver, "\n"))
+  # print(paste0("date: ",r_date, "\n"))
   rix::rix(
     r_ver = r_ver,
+    date = r_date,
     r_pkgs = r_pkgs,
     system_pkgs = system_pkgs,
     git_pkgs = git_pkgs,
     overwrite = TRUE,
     print = TRUE,
     project_path = path_default_nix,
-    ide = "other"
+    ide = "none",
+    shell_hook = shell_hook
   )
 }))
-# sink()
-cat(paste0("\n", path_default_nix, "/default.nix\n"))
 EOF
-NIX_TMP=$(mktemp /tmp/rix.XXXXXXXXX.tmp)
-nix-shell --pure --expr "$(curl -sl https://raw.githubusercontent.com/jrosell/rix-run/master/inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
-# nix-shell --expr "$(cat inst/extdata/rix.nix)" --run "Rscript --no-site-file --no-environ --no-restore $RIX_R_SCRIPT_PATH ${1}" > $NIX_TMP
-NIX_FILE=`cat $NIX_TMP | grep '^/tmp/' | grep 'default.nix'`
-cat "$NIX_TMP"
-rm "$RIX_R_SCRIPT_PATH" # echo "RIX_R_SCRIPT_PATH" $RIX_R_SCRIPT_PATH
 
 
-if [[ $(wc -l < "$NIX_FILE") -ge 2 ]]; then    
-  echo "Runing nix-shell $NIX_FILE ${1}..."
-  rm $NIX_TMP
-else
-  echo "Error when generating the configuration file. Check for errors on the $NIX_TMP file."
-  rm "$RIX_R_PROFILE"
-  if test -f "$RIX_R_PROFILE_PREVIOUS"; then
-    mv "$RIX_R_PROFILE_PREVIOUS" "$RIX_R_PROFILE"
-  fi
-  exit 2
+# docker run --rm -it \
+#   -v "$PWD:/workspace" \
+#   -v "$NIX_TMP_DIR:/rix" -w /workspace \
+#   -e TZ=UTC \
+#   nixos/nix sh -c "
+# echo \"Running $COMMAND_TO_RUN\"
+# "
+
+USER_ID=$(whoami)
+
+docker run --rm -it \
+  -v "$PWD:/workspace" \
+  -v "$NIX_TMP_DIR:/rix" -w /workspace \
+  -e TZ=UTC \
+  -e HOST_UID=$(id -u) \
+  -e HOST_GID=$(id -g) \
+  nixos/nix sh -c "
+cd /rix
+curl -sl https://raw.githubusercontent.com/ropensci/rix/refs/heads/main/inst/extdata/default.nix > rix.nix
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+cachix use rstats-on-nix
+nix-shell rix.nix --run 'Rscript -e \"rix::rix_init(project_path = \\\".\\\")\"'
+nix-shell rix.nix --run 'Rscript extract.R /workspace/${1}' >> /workspace/rix-run-logs/rix-run-extract.log
+cp default.nix /workspace/rix-run-logs/rix-run-extracted.nix
+mv default.nix /rix/rix-run-extracted.nix
+cd /workspace
+if [ -f /workspace/.Rprofile ]; then
+  cp /workspace/.Rprofile /workspace/.Rprofile-before  
 fi
-
-if [[ $* == *--targets* ]]; then
-  echo "Rscript -e 'targets::tar_make(script = \"${1}\", store = \"_${1}\")'"
-  nix-shell --expr "$(cat $NIX_FILE)" --run \
-  "Rscript -e 'targets::tar_make(script = \"${1}\", store = \"_targets/${1}\")'"
-else 
-  nix-shell --expr "$(cat $NIX_FILE)" --run "Rscript  \
-  --no-site-file \
-  --no-environ \
-  --no-restore \
-  ${1}"
+cp /rix/.Rprofile /workspace/.Rprofile
+echo \"Running $COMMAND_TO_RUN\"
+nix-shell /rix/rix-run-extracted.nix --run \"$COMMAND_TO_RUN\" > /workspace/rix-run-logs/rix-run-last.log
+rm /workspace/.Rprofile
+if [ -f /workspace/.Rprofile-before ]; then  
+  mv /workspace/.Rprofile-before /workspace/.Rprofile
 fi
+chown -R \$HOST_UID:\$HOST_GID /workspace/
+echo \"Permissions changed to \$HOST_UID:\$HOST_GID\"
+" > rix-run-logs/docker_last.log
+cat rix-run-logs/docker_last.log >> rix-run-logs/docker.log
 
-rm "$RIX_R_PROFILE"
-if test -f "$RIX_R_PROFILE_PREVIOUS"; then
-  mv "$RIX_R_PROFILE_PREVIOUS" "$RIX_R_PROFILE"
-fi
 

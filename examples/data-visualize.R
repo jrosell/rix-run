@@ -1,4 +1,4 @@
-#' @rix r_ver = "4.3.3"
+#' @rix date = "2025-09-01"
 #' @rix r_pkgs = c("here", "ggplot2", "dplyr", "tidyr", "palmerpenguins", "ggthemes", "R.devices")
 library(here)
 library(dplyr)
@@ -14,11 +14,9 @@ str(penguins)
 p <- penguins |> 
   drop_na() |> 
   ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
-  geom_point()
+  geom_point() +
+  theme_excel()
 
-suppressGraphics(ggsave(
+ggsave(
   filename = file_path, plot = p, create.dir = TRUE
-))
-if (interactive()) {
-  utils::browseURL(file_path)
-}
+)

@@ -1,0 +1,22 @@
+---
+title: "Hello world"
+format:
+  revealjs:
+    embed-resources: true
+#' @rix date = "2025-09-01"
+#' @rix r_pkgs = c("quarto")
+#' @rix system_pkgs = c("quarto")
+---
+
+## Hello
+
+```{r}
+print("Hello quarto.")
+```
+
+---
+
+## Bye
+
+Bye quarto
+

@@ -9,3 +9,6 @@ test.R
 *.png
 *.csv
 _targets/
+rix-run-logs
+README.html
+README_files
