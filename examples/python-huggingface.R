@@ -7,7 +7,8 @@
 texts <- c("I feel great!")
 
 library(reticulate)
-reticulate::install_miniconda()
+options(timeout = 999)
+reticulate::install_miniconda(force = TRUE)
 
 library(text)
 textrpp_install(prompt = FALSE)
